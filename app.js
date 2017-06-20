@@ -7,6 +7,7 @@ var bodyParser = require('body-parser');
 var mysql = require('mysql');
 var jwt = require('jsonwebtoken');
 var nodemailer = require('nodemailer');
+var email 	= require("emailjs/email");
 
 var routes = require('./routes/index');
 //var users = require('./routes/users');
