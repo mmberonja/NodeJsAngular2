@@ -130,8 +130,8 @@ function Email(textT,email){
         //from: '<miroslav.beronja@to-net.rs>',
         from: '<'+email+'>',
         //to: 'miroslav.beronja@to-net.rs', // list of receivers
-        to: 'miroslav.beronja@to-net.rs', // list of receivers
-        subject: 'Zahtev za dodavanje novog projekta ✔', // Subject line
+        to: 'miroslav.beronja@to-net.rs,milos.tolic@to-net.rs,stevan.filipovic@to-net.rs', // list of receivers
+        subject: 'Zahtev za dodavanje novog projekta ✔', // Subject line//milos.tolic@to-net.rs,stevan.filipovic@to-net.rs
         text: ''+textT+'', // plain text body
         html: '<b>'+textT+'</b>' // html body
     };  
@@ -157,82 +157,8 @@ function Email(textT,email){
 
 })*/
 
-/*
-router.get('/niz',function(req,resp,next){
 
-      var NizObject;
-      var Niz = [{}];
-      var Nizdetalji = [{}];
-      var Micko;
-      var prviDeoNiza;
-      var brojac = 0;
-      var brojac_detalji = 0;
-      var brojac_neki = 0;
 
-      connection.query("select P.Projekti,D.projekat_detalji,D.satnica from micko_projekti as P INNER JOIN micko_nedelja_mesec_sati as M on P.id_pr = M.id_projekat_N \
-            INNER JOIN projekti_detalji_proba as D on M.id = D.id_meseci where id_nadimak_N = 3 and  mesec = 'April' and nedelja = 2",function(error,rows,field) {
-        
-          if(error)
-          {
-                console.log('Error',error);
-                resp.json('Error',error);
-          }
-          var rest = [];
-          var restSalji = [];
-                
-
-                for(var ii in rows)
-                {
-                    var empobj = rows[ii];
-                    rest.push(empobj);
-                   
-                }
-                
-                //resp.json(rest);
-
-                prviDeoNizav = rest[0].Projekti;
-                Niz[0] = prviDeoNizav;
-
-                for(var ii in rest)
-                {
-                    if(prviDeoNizav != rest[ii].Projekti){
-
-                        brojac++;
-                        //brojac_detalji++;
-                        prviDeoNizav = rest[ii].Projekti;
-                        //console.log("rest[ii].Projekti" + rest[ii].Projekti)
-                        Niz[brojac] = prviDeoNizav;
-                      
-                    }
-                   
-                }
-                for(var ii in Niz)
-                {   
-                        Nizdetalji[brojac_detalji] = [{razvoj:rest[brojac_neki].satnica,
-                                        odrzavanje:rest[brojac_neki+1].satnica ,
-                                        dokumentacija:rest[brojac_neki+2].satnica ,
-                                        implementacija:rest[brojac_neki+3].satnica ,
-                                        reziski_poslovi:rest[brojac_neki+4].satnica , 
-                        }]
-
-                        brojac_neki = brojac_neki + 5;
-                        console.log("brojac_neki" + brojac_neki);
-                        brojac_detalji++;
-                    
-                }
-
-                for(var ii in Niz)
-                {
-                    //console.log(Niz[ii]);
-                    var prikazi = Niz[ii];
-                    restSalji.push({Projekti:prikazi,Obavestenja:Nizdetalji[ii]
-                    })
-                }
-
-                resp.json(restSalji);
-
-        });  
-})*/
 /*
 router.get('/projekti',function(req,resp,next){
 
@@ -693,50 +619,7 @@ router.get('/insert-u-tabelu-micko-nedelja-mesec-sati-1',function(req,resp,next)
 });
 */
 
-router.get('/refresh/token',function(req,resp,next){
 
-    var query = url.parse(req.url,true).query;
-    var Nadimak = query.ime;
-    var Admin = query.admin;
-
-    if(Admin == null || Admin == "" || Admin == NaN || Admin == undefined){
-        resp.status(500).json("Neispravno je uneta vrednost za admin");
-        return;
-    }
-
-    if(Admin != 'jeste')
-    {   
-        if(Admin != 'nije'){
-            resp.status(500).json("Neispravno je uneta vrednost za admin");
-            return;
-        }
-        else{
-           
-           console.log("Sve je ureduu!!");
-
-        }      
-         
-    }
-
-    if(Nadimak == "" || Nadimak == null || Nadimak == NaN || Nadimak == undefined){
-
-        resp.status(500).json("Neispravno je uneto ime");
-        return;
-
-    }
-
-    var tokenSaljiM = jwt.sign({ime:Nadimak,admin:Admin }, 'shhhhh', {
-                                    //expiresInMinutes: 1440
-            expiresIn : 60*60*24//VReme isteka tokena ceoo dan!!
-        // expiresIn : 5000 
-    });   
-
-    console.log("Usaoooo");
-
-    resp.json(tokenSaljiM);
-    
-     
-})
 
 router.get('/Greske',function(req,resp,next){
 
@@ -1269,6 +1152,51 @@ router.get('/refresh/token',function(req,resp,next){
      
 })*/
 
+router.get('/refresh/token',function(req,resp,next){
+
+    var query = url.parse(req.url,true).query;
+    var Nadimak = query.ime;
+    var Admin = query.admin;
+
+    if(Admin == null || Admin == "" || Admin == NaN || Admin == undefined){
+        resp.status(500).json("Neispravno je uneta vrednost za admin");
+        return;
+    }
+
+    if(Admin != 'jeste')
+    {   
+        if(Admin != 'nije'){
+            resp.status(500).json("Neispravno je uneta vrednost za admin");
+            return;
+        }
+        else{
+           
+           console.log("Sve je ureduu!!");
+
+        }      
+         
+    }
+
+    if(Nadimak == "" || Nadimak == null || Nadimak == NaN || Nadimak == undefined){
+
+        resp.status(500).json("Neispravno je uneto ime");
+        return;
+
+    }
+
+    var tokenSaljiM = jwt.sign({ime:Nadimak,admin:Admin }, 'shhhhh', {
+                                    //expiresInMinutes: 1440
+            expiresIn : 60*60*24//VReme isteka tokena ceoo dan!!
+        // expiresIn : 5000 
+    });   
+
+    console.log("Usaoooo");
+
+    resp.json(tokenSaljiM);
+    
+     
+})
+
 router.get('/korisnik/email',function(req,resp,next){
 
     var query = url.parse(req.url,true).query;
@@ -1289,18 +1217,19 @@ router.get('/korisnik/email',function(req,resp,next){
           resp.json(rest[0].Email_Klijenta);
 
     })   
-
-
 })
 
 router.get('/email',function(req,resp,next){
 
     var query = url.parse(req.url,true).query;
     var Projekat = query.projekat;
-     var Email = query.email;
+    var sendMail = query.emailsend;
+
+    console.log("Email" + sendMail);
+    console.log("Projekat" + Projekat);
 
     //var cuvaj = Email('KC-Novi Sad - gas','miroslav.beronja@to-net.rs');
-    var cuvaj = Email(''+Projekat+'',''+Email+'');
+    var cuvaj = Email(''+Projekat+'',''+sendMail+'');
     //resp.json(cuvaj);
 
     transporter.sendMail(cuvaj, (error, info) => {
@@ -1309,7 +1238,7 @@ router.get('/email',function(req,resp,next){
             resp.json(error);
         }
         console.log('Message %s sent: %s', info.messageId, info.response);
-        resp.json("Poslat mejl");
+            resp.json("Poslat mejl");
     });
 
 })
@@ -1320,7 +1249,7 @@ router.get('/trenutna-godina',function(req,resp,next){
     var d = new Date();
     var n = d.getFullYear();
 
-    resp.json(n)
+    resp.json(Number(n))
 })
 
 router.get('/token/provera',function(req,resp,next){
@@ -1354,8 +1283,58 @@ router.get('/trenutna-nedelja',function(req,resp,nesxt){
                     rest.push(empobj);
                 }
 
-                resp.json(rest[0].Vreme)           
+                resp.json(Number(rest[0].Vreme))           
     });
+
+})
+
+router.put('/tests-insert',function(req,resp,next){
+
+    var reqObj = req.body;
+    var query = url.parse(req.url,true).query;
+
+    var Ime = query.ime;
+    var Mesec = query.mesec;
+    var Nedelja = query.nedelja;
+    var Godina = query.godina;
+ 
+    var insertValues = {
+
+            "obj" :  reqObj.Objekti,
+        
+    };
+
+    console.log("Ime" + Ime);
+    console.log("Mesec" + Mesec);
+    console.log("Nedelja" + Nedelja);
+    console.log("Godina" + Godina);
+
+
+    for(var ii in insertValues.obj){
+
+        //console.log("Projekti " +insertValues.obj[ii].Projekti+ "Razovj " +insertValues.obj[ii].rezijski_poslovi);
+         connection.query("update sve_jedna_tabela set Razvoj = '"+insertValues.obj[ii].Razvoj+"',odrzavanje = '"+insertValues.obj[ii].odrzavanje+"',\
+            dokumentacija = '"+insertValues.obj[ii].dokumentacija+"',implementacija='"+insertValues.obj[ii].implementacija+"',rezijski_poslovi='"+insertValues.obj[ii].rezijski_poslovi+"' \
+            where id_nadimak_D = Micko_S('"+Ime+"') and id_projekat_D = '"+insertValues.obj[ii].id_pr+"' and nedelja = '"+Nedelja+"'\
+            and mesec = '"+Mesec+"' and godina = '"+Godina+"'",function(error,rows,field) {
+
+            if(error)
+            {
+                console.log('Error',error);
+                resp.json('Error',error);
+            }
+            var rest = [];
+
+            for(var ii in rows)
+            {
+                var empobj = rows[ii];
+                rest.push(empobj);
+            }
+
+        });
+    }
+
+    resp.json("Insert bre");
 
 })
 

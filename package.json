@@ -17,6 +17,7 @@
     "serve-favicon": "~2.3.0"
   },
   "devDependencies": {
+    "@angular/cli": "^1.2.2",
     "bcryptjs": "^2.3.0",
     "body-parser": "^1.15.2",
     "emailjs": "^1.0.8",
