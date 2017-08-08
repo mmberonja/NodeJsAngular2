@@ -1,0 +1,47 @@
+{
+    "lang": {
+        "idCat": "KATEGORIJA",
+        "idPar": "ŠIFRA",
+        "mb": "MB",
+        "name": "NAZIV",
+        "pib": "PIB"
+    },
+    "data": [
+        {
+            "idPar": 69512,
+            "name": "SS ZGRADA BLOK S.MILETICA ",
+            "mb": "",
+            "pib": "",
+            "idCat": "2",
+            "address": "SREMSKA KAMENICA, SVETOZARA MILETIĆA 21    ",
+            "number": "21"
+        },
+        {
+            "idPar": 56596,
+            "name": "OSNOVNA ŠKOLA  JOVAN DUČIĆ PETROVARADIN ",
+            "mb": "8066752",
+            "pib": "100802892",
+            "idCat": "2",
+            "address": "PETROVARADIN, PRERADOVIĆEVA 6    ",
+            "number": "6"
+        },
+        {
+            "idPar": 56325,
+            "name": "JAVNO PREDUZEĆE \"TOPLANA\" ",
+            "mb": "8247323",
+            "pib": "101235213",
+            "idCat": "2",
+            "address": "",
+            "number": ""
+        },
+        {
+            "idPar": 56173,
+            "name": "AGROPLOD DOO ZA PROIZVODNJU I OTKUP POLJOPRIVREDNIH PROIZVODA GLOŽAN ",
+            "mb": "08776750",
+            "pib": "102629458",
+            "idCat": "2",
+            "address": "GLOŽAN, VELJKA VLAHOVIĆA 60    ",
+            "number": "60"
+        }
+    ]
+}
