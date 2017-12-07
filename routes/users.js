@@ -7,9 +7,119 @@ var url = require('url');
 //var datetime = require('node-datetime');
 var bcrypt = require('bcryptjs');
 var randomBytes = require('random-bytes');
-
+var Excel = require('exceljs');
+var tempfile = require('tempfile');
+var fs = require('fs');
+var streamBuffers = require('stream-buffers');
 
 /* GET users listing. */
+function colName(n) {
+    var ordA = 'a'.charCodeAt(0);
+    var ordZ = 'z'.charCodeAt(0);
+    var len = ordZ - ordA + 1;
+    var Niz = []
+
+    var s = "";
+    while(n >= 0) {
+        s = String.fromCharCode(n % len + ordA) + s;
+        n = Math.floor(n / len) - 1;
+    }
+    return s;
+}
+
+routerAdmin.put('/Excel',function(req,resp,next){
+
+    var reqObj = req.body;
+    var insertValues = {
+        "Projekti" :  reqObj.Projekti
+    };
+
+    let nizRotation = [];
+    nizRotation[0] = 1;
+    nizRotation[1] = Number(insertValues.Projekti.length) + 1; 
+
+    nizMicko = ['Micko','Cile','Jaca','Dekana'];
+    var workbook = new Excel.Workbook();
+    var worksheet = workbook.addWorksheet('My Sheet');
+    let brojFor = 1;
+
+    for(let z = 0; z < 1 ; z++){    
+        for(let nm in insertValues.Projekti[z]){          
+            var dobCol = worksheet.getColumn(brojFor);
+            dobCol.header = insertValues.Projekti[z][nm];
+            if(brojFor == 1){
+                dobCol.width = 50;
+            }
+            else{
+                dobCol.width = 3.5;
+            }
+            brojFor++;
+        }
+        brojFor = 1;
+    }
+
+    var row = worksheet.getRow(1);
+    row.height = 70;
+    var rowValues = [];
+    let brRow = 1
+    let prvaPonovo = Number(insertValues.Projekti.length) + 1;
+
+    for(let i = 1; i < insertValues.Projekti.length ; i++){
+        for(let nm in insertValues.Projekti[i]){
+            rowValues[brRow] = insertValues.Projekti[i][nm]
+            brRow++;
+        }
+        worksheet.addRow(rowValues);
+        brRow = 1
+    } 
+    
+    for(let i = 0; i < 1 ; i++){
+        for(let nm in insertValues.Projekti[i]){
+            rowValues[brRow] = insertValues.Projekti[i][nm]
+            brRow++;   
+        }
+        worksheet.addRow(rowValues);
+        brRow = 1
+    }
+
+    var rowPoslednje = worksheet.getRow(nizRotation[1]);
+    rowPoslednje.height = 70;
+
+    for(let nm in nizRotation){
+        for(let z = 0; z < Number(Object.keys(insertValues.Projekti[0]).length) + 1 ; z++){
+            let velikoSlovo = colName(z).toUpperCase()
+            worksheet.getCell(''+velikoSlovo+''+nizRotation[nm]+'').alignment = { textRotation: 90};
+        }
+    }
+
+   let brF = 0 
+   for(let i = 1; i < insertValues.Projekti.length ; i++){
+        for(let nm in insertValues.Projekti[i]){
+            let velikoSlovo = colName(brF).toUpperCase();  
+            let rez = Number(i) + 1;
+            brF++;
+            let tacka = nm.indexOf("Nedelja");
+            let ukupno = nm.indexOf("Ukupno");
+            if(ukupno == -1){}
+            else{
+                worksheet.getCell(''+velikoSlovo+''+rez+'').fill = {type: 'pattern',pattern:'solid',fgColor:{argb:'FFFF00'}};
+            }
+            if(tacka == -1){}
+            else{
+                worksheet.getCell(''+velikoSlovo+''+rez+'').fill = {type: 'pattern',pattern:'solid',fgColor:{argb:'FFFACD'}};
+            }
+            
+        }
+        brF = 0
+    } 
+    var myWritableStreamBuffer = new streamBuffers.WritableStreamBuffer();
+    workbook.xlsx.write(myWritableStreamBuffer)
+        .then(function(){
+            resp.json(myWritableStreamBuffer.getContents());
+    });
+
+});
+
 routerAdmin.get('/hu', function(req, resp, next) {
   //res.send('respond with a resource');
   console.log("Users!!!!!");
@@ -23,7 +133,6 @@ routerAdmin.get('/Sifra1234',function(req,resp,next){
         resp.json("Miroslav Beronja");
         //return next();
 });
-
 
 routerAdmin.get('/neaktivni-projekti',function(req,resp,next){
 
@@ -150,11 +259,26 @@ routerAdmin.put('/dodaj-korisnika-na-projekat',function(req,resp,next){
             "godina": reqObj.godina
     };
 
-    /*console.log("Nadimak" + insertValues.Nadimak)
-    console.log("Projekat" + insertValues.Projekat)  
-    console.log("godina" + insertValues.godina)*/
+    console.log("Nadimak" + insertValues.Nadimak)
+    console.log("Projekat" , insertValues.Projekat)  
+    console.log("godina" + insertValues.godina)
 
-    connection.query("call dodavanje_projekta('"+insertValues.Nadimak+"','"+insertValues.Projekat+"',"+insertValues.godina+")",function(error,rows,field) {
+    let stringZarez = '';
+    for(let pr in insertValues.Projekat){
+       console.log("duzia" + Number(insertValues.Projekat.length));
+       console.log("pr" + pr);
+       let duzina = Number(insertValues.Projekat.length) - 1
+       if(pr == duzina){
+           stringZarez += ''+insertValues.Projekat[pr]['Projekti'] + ''
+       }
+       else{
+           stringZarez += ''+insertValues.Projekat[pr]['Projekti'] + '/'
+       }    
+    }
+    console.log("stringZarez: " +  stringZarez);
+
+    //resp.json("Uspesno je dodat projekat!"); 
+    connection.query("call Dodaj_projekte('"+insertValues.Nadimak+"','"+stringZarez+"',"+insertValues.godina+")",function(error,rows,field) {
 
         if(error){
             console.log("Error",error);
@@ -198,15 +322,24 @@ routerAdmin.put('/ukloni-korisnika-sa-projekata',function(req,resp,next){
             "Projekat" : reqObj.Projekat,
     };
 
-    console.log("Nadimak" + insertValues.Nadimak)
-    console.log("Projekat" + insertValues.Projekat)
-    console.log("Micko_Zapamti1("+insertValues.Projekat+")")  
+    let cuvajId = "";
+    for(let pr in insertValues.Projekat){
+        let duzinaP = 0;
+        duzinaP = insertValues.Projekat.length - 1
+        if(duzinaP == pr){
+            cuvajId += insertValues.Projekat[pr]['id'] + "";
+        }else{
+            cuvajId += insertValues.Projekat[pr]['id'] + ",";
+        }
+    }
 
+    console.log("--------" + cuvajId);
+    //resp.json("Uspesno je uklonjen projekat!");
     connection.query("\
         update micko_pr_nadimak \
         set zakacen = 'ne_radi'\
         where id_korisnik = Micko_S('"+insertValues.Nadimak+"') and \
-        id_projekat = Micko_Zapamti1('"+insertValues.Projekat+"')",function(error,rows,field) {
+        id_projekat in ("+cuvajId+")",function(error,rows,field) {
 
         if(error){
             console.log("Error",error);
@@ -221,6 +354,7 @@ routerAdmin.get('/ime-tabele',function(req,resp,next){
     var query = url.parse(req.url,true).query;
     var Tabela = query.tabela;
     var tabelaAdmin = [];
+    console.log("Tabela" + Tabela);
 
     connection.query("select * from micko_tabele_ime where ime_tabele = '"+Tabela+"'", function(error, blogs, fields) {
 
@@ -548,13 +682,12 @@ routerAdmin.get('/projekti/satnica/nedelje',function(req,resp,next){
     var Mesec = query.mesec;
     var Nedelja = query.nedelja;
     var Godina = query.godina;
-
     varNizMesec = ['Januar','Februar','Mart','April','Maj','Jun','Jul','Avgust','Septembar','Oktobar','Novembar','Decembar']
     var odabraniMesec,mesecUpit;
     var probaGodina;
 
     odabraniMesec = Mesec;
-
+    /*
     if(odabraniMesec  == 'Januar'){mesecUpit = 0;}
     else if( odabraniMesec  == 'Februar'){mesecUpit = 1;}
     else if( odabraniMesec  == 'Mart'){mesecUpit = 2;}
@@ -586,7 +719,7 @@ routerAdmin.get('/projekti/satnica/nedelje',function(req,resp,next){
     if(Godina.length > 4 || Godina.length <= 3){
         resp.status(500).json('Nije dobro uneta Godina');
         return;
-    }
+    }*/
 
     for(var god in Godina){
 
@@ -661,26 +794,27 @@ routerAdmin.get('/projekti/satnica/nedelje',function(req,resp,next){
 
     function SumProjekti(sumPoljeString){
 
+        //console.log(sumPoljeString)
         //resp.json(sumPoljeString[0].polja);
         let nazivTabele = 'sve_jedna_tabela';
-        console.log("duzina" + sumPoljeString.length);    
-
+        //console.log("duzina" + sumPoljeString.length);    
+        
         connection.query("\
-        select P.Projekti,\
+            select P.Projekti,\
             S.id_projekat_D,\
             M.Ime_Prezime,\
             M.Nadimak_Klijent,\
             S.id_nadimak_D,\
             S.nedelja,\
-            ("+sumPoljeString[brojQ].polja+") as sum \
-        from micko_projekti as P INNER JOIN "+sumPoljeString[brojQ].imeTabele+" as S \
-            on P.id_pr = S.id_projekat_D INNER JOIN micko_registracija as M on S.id_nadimak_D = M.id \
-        where mesec = '"+Mesec+"' and godina = '"+Godina+"' and aktivan_projekat = 'aktivan'\
-        group by id_nadimak_D,id_projekat_D,nedelja",function(error,rows,field) {
+                ("+sumPoljeString[brojQ].polja+") as sum \
+            from micko_projekti as P INNER JOIN "+sumPoljeString[brojQ].imeTabele+" as S \
+                on P.id_pr = S.id_projekat_D INNER JOIN micko_registracija as M on S.id_nadimak_D = M.id \
+            where mesec = '"+Mesec+"' and godina = "+Godina+" and aktivan_projekat = 'aktivan'\
+            group by id_nadimak_D,id_projekat_D,nedelja",function(error,rows,field) {
             
                 brojQ++;
                 if(error) {
-                        resp.json('Error',error);           
+                    resp.json('Error',error);           
                 }
                 //var rest = [];
 
@@ -689,7 +823,9 @@ routerAdmin.get('/projekti/satnica/nedelje',function(req,resp,next){
                     rest.push(empobj);
                 }
                 if(sumPoljeString.length == brojQ){
+                //if(2 == brojQ){    
                     resp.json(rest);
+                    //console.log(rest)
                 }
                 else{
                     SumProjekti(sumPoljeString)
@@ -947,6 +1083,7 @@ routerAdmin.get('/projekti/satnica',function(req,resp,next){
 
 module.exports = routerAdmin;
 
+
 var connection = mysql.createConnection({
    
         host     : 'localhost',
@@ -955,3 +1092,12 @@ var connection = mysql.createConnection({
         database : 'test_schema',
         //micko : console.log('ConekcijaBaza')
 });
+
+/*
+var connection = mysql.createConnection({
+        host     : '192.168.1.11',
+        user     : 'timerep',
+        password : '123timerep456',
+        database : 'timerep',
+        micko : console.log('ConekcijaBazaUser')
+});*/

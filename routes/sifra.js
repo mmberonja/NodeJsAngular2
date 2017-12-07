@@ -8,8 +8,6 @@ var url = require('url');
 var bcrypt = require('bcryptjs');
 var randomBytes = require('random-bytes');
 
-
-
 routerSifra.post('/promena-sifre',function(req,resp,next){
 
     connection.beginTransaction(function(error) {
@@ -92,8 +90,8 @@ routerSifra.post('/promena-sifre',function(req,resp,next){
     });
 });
 
-
 module.exports = routerSifra;
+
 
 var connection = mysql.createConnection({
    
@@ -103,3 +101,13 @@ var connection = mysql.createConnection({
         database : 'test_schema',
         //micko : console.log('ConekcijaBaza')
 });
+
+/*
+var connection = mysql.createConnection({
+   
+        host     : '192.168.1.11',
+        user     : 'timerep',
+        password : '123timerep456',
+        database : 'timerep',
+        micko : console.log('ConekcijaBazaSifra')
+});*/

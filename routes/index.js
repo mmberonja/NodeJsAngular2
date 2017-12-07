@@ -9,6 +9,12 @@ var randomBytes = require('random-bytes');
 var nodemailer = require('nodemailer');
 var email 	= require("emailjs/email");
 var async = require('async');
+var Excel = require('exceljs');
+var tempfile = require('tempfile');
+var fs = require('fs');
+var streamBuffers = require('stream-buffers');
+/*var xlsx = require('js-xlsx');*/
+//const save = require('save-file')
 
 var person = 0;
 var pocetakNiz = 0;
@@ -24,7 +30,7 @@ var tokenSalji = "0";
 var poslati_sati = 0;
 var tabela = "0";
 var adminK = "admin BRE";
-var ispisADdmnK = "";
+var ADdmnK = "";
 var ispisADdmnK1 = "";
 var ispisiAd = "";
 var sifre_promena = "";
@@ -60,10 +66,11 @@ var projekti_pamri_m = []
 var pamti_rest_1 = []
 var pamti_rest_2 = []
 
+
 router.use(function (req, res, next) {
 
     try {
-        res.setHeader('Access-Control-Allow-Origin', '*');
+        /*res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
         res.setHeader('Access-Control-Allow-Headers', 'Accept,\
 			  Content-Type,\
@@ -72,7 +79,12 @@ router.use(function (req, res, next) {
 			  X-CSRF-Token,\
 			  Authorization');
                                                     
-        res.setHeader('Access-Control-Allow-Credentials', true);
+        res.setHeader('Access-Control-Allow-Credentials', true);*/
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Headers', 'Origin, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, X-Response-Time, X-PINGOTHER, X-CSRF-Token,Authorization');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+        res.setHeader('Access-Control-Expose-Headers', 'X-Api-Version, X-Request-Id, X-Response-Time');
+        res.setHeader('Access-Control-Max-Age', '1000');
 
         if ( req.method === 'OPTIONS' ) {
             brojacOPTIONS++;
@@ -91,11 +103,270 @@ router.use(function (req, res, next) {
 
 });
 
+function colName(n) {
+    var ordA = 'a'.charCodeAt(0);
+    var ordZ = 'z'.charCodeAt(0);
+    var len = ordZ - ordA + 1;
+    var Niz = []
+
+    var s = "";
+    while(n >= 0) {
+        s = String.fromCharCode(n % len + ordA) + s;
+        n = Math.floor(n / len) - 1;
+    }
+    return s;
+}
+
+/*
+router.get('/upis-projekata',function(req,resp){  
+
+    let query = url.parse(req.url,true).query;
+    let Nedelja = query.nedelja;
+    let Mesec = query.mesec;
+    let Ime = query.ime;
+    let Godina = query.godina;
+
+    function Prikaz(projekti){
+        let prevod = [];
+        connection.query("select * from micko_prevodi",function(error,rows,field) {
+        
+            if(error){resp.json('Error',error);}
+            var z = {};    
+            for(var zz in rows){
+                z[rows[zz].naziv] = rows[zz]['prevod'];
+            }
+            prevod.push(z);
+
+            resp.json({
+                Prevodi:prevod,
+                Podaci:projekti
+            });
+        });
+    }
+
+    function SelectProjekti(prikaz){
+        //resp.json(prikaz);
+        let selBr = 0
+        let sviProjekti = [];
+
+        for(let pr in prikaz){
+            connection.query("select P.id_pr,P.Projekti,"+prikaz[pr].zarez+",P.tabela_vrednosti from micko_projekti as P LEFT JOIN "+prikaz[pr].ime_tabele+" as S \
+                on P.id_pr = S.id_projekat_D LEFT JOIN micko_pr_nadimak as R on S.id_nadimak_D = R.id_korisnik and S.id_projekat_D = R.id_projekat \
+                where R.zakacen = 'radi' and P.aktivan_projekat = 'aktivan' and id_nadimak_D =  Micko_S('"+Ime+"') and nedelja = '"+Nedelja+"' and mesec = '"+Mesec+"' and \
+                godina = '"+Godina+"' order by P.id_pr",function(error,rows,field) {
+
+                    selBr++;
+                    if(error) {resp.json('Error',error);           }
+                    for(var ii in rows) {
+                        var empobj = rows[ii];
+                        sviProjekti.push(empobj);
+                    }
+                    if(prikaz.length == selBr){Prikaz(sviProjekti);}
+            });   
+        }
+    }
+
+    connection.query("select * from micko_tabele_ime", function(err, blogs, fields) {
+
+        let rest_ime_tabela = [];
+        let stringCrta = [];
+        let string = ''
+        let stringZarez = '';
+        let brojFor = 0,brInsr = 0;
+        for(var ii in blogs)
+        {
+            var empobj = blogs[ii];
+            rest_ime_tabela.push(empobj);
+            rest_ime_tabela[ii].json = JSON.parse(rest_ime_tabela[ii].json)
+            let z = {};
+            for(let js in rest_ime_tabela[ii].json){
+                brojFor++;    
+                let duzina = Number(Object.keys(rest_ime_tabela[ii].json).length)
+                if(brojFor == Object.keys(rest_ime_tabela[ii].json).length){
+                     string += '' + rest_ime_tabela[ii].json[js] + '';
+                     stringZarez += 'S.' + rest_ime_tabela[ii].json[js] + '';
+                }
+                else{
+                     string += '' + rest_ime_tabela[ii].json[js] + '/';
+                     stringZarez += 'S.' + rest_ime_tabela[ii].json[js] + ',';
+                }
+            }
+            z['string'] = string;
+            z['zarez'] = stringZarez;
+            z['ime_tabele'] = rest_ime_tabela[ii].ime_tabele;
+            stringCrta.push(z);
+            string = '';
+            stringZarez = '';
+            brojFor = 0;
+        }
+        //stringCrta - priprema stringa za proceduru
+        connection.query("select P.id_pr,P.Projekti,R.Nadimak_Klijent,P.tabela_vrednosti from micko_projekti as P INNER JOIN  micko_pr_nadimak as M on P.id_pr = M.id_projekat \
+            INNER JOIN micko_registracija as R on M.id_korisnik = R.id where R.id = Micko_S('"+Ime+"') and M.zakacen = 'radi' and P.aktivan_projekat = 'aktivan' order by P.tabela_vrednosti DESC,id_pr",function(error,rows,field) {
+        
+            if(error){
+                console.log("Error",error);
+            }
+            var rest = [];
+            for(var ii in rows){
+                var empobj = rows[ii];
+                for(let k in stringCrta){
+                    if(rows[ii].tabela_vrednosti == stringCrta[k]['ime_tabele']){
+                        empobj['string'] = stringCrta[k]['string'];
+                    }
+                }
+                rest.push(empobj);
+            }
+            //resp.json(stringCrta);
+            for(let rs in rest){
+                
+                connection.query("CAll upis_satnica_nule('"+rest[rs].Nadimak_Klijent+"',\
+                    '"+rest[rs].tabela_vrednosti+"',\
+                    '"+rest[rs].string+"',\
+                    '"+rest[rs].id_pr+"',\
+                    '"+rest[rs].Projekti+"',\
+                    '"+Godina+"',\
+                    '"+Mesec+"',\
+                    '"+Nedelja+"')",
+                    function(error,rez,field) {
+                        brInsr++;
+                        if(brInsr == rest.length){ SelectProjekti(stringCrta); }
+                });   
+            }     
+        });            
+    }); 
+
+});*/
 
 
-router.get('/Sifra123',function(req,resp,next){
-      
-        resp.json((new Date).getFullYear());
+router.put('/Sifra123',function(req,resp,next){
+
+    var reqObj = req.body;
+    var insertValues = {
+        "Projekti" :  reqObj.Projekti
+    };
+
+    let nizRotation = [];
+    nizRotation[0] = 1;
+    nizRotation[1] = Number(insertValues.Projekti.length) + 1; 
+
+    nizMicko = ['Micko','Cile','Jaca','Dekana']
+    var workbook = new Excel.Workbook();
+    var worksheet = workbook.addWorksheet('My Sheet');
+    let brojFor = 1
+
+    //for(let nm in nizMicko){
+    for(let z = 0; z < 1 ; z++){    
+        for(let nm in insertValues.Projekti[z]){          
+            var dobCol = worksheet.getColumn(brojFor);
+            dobCol.header = insertValues.Projekti[z][nm];
+            if(brojFor == 1){
+                dobCol.width = 50;
+            }
+            else{
+                dobCol.width = 3.5;
+            }
+            brojFor++;
+        }
+        brojFor = 1;
+    }
+
+    var row = worksheet.getRow(1);
+    row.height = 70;
+    var rowValues = [];
+    let brRow = 1
+    let prvaPonovo = Number(insertValues.Projekti.length) + 1;
+
+    for(let i = 1; i < insertValues.Projekti.length ; i++){
+        for(let nm in insertValues.Projekti[i]){
+            rowValues[brRow] = insertValues.Projekti[i][nm]
+            brRow++;
+               
+        }
+        worksheet.addRow(rowValues);
+        brRow = 1
+    } 
+    
+    for(let i = 0; i < 1 ; i++){
+        for(let nm in insertValues.Projekti[i]){
+            rowValues[brRow] = insertValues.Projekti[i][nm]
+            brRow++;   
+        }
+        worksheet.addRow(rowValues);
+        brRow = 1
+    }
+
+    var rowPoslednje = worksheet.getRow(nizRotation[1]);
+    rowPoslednje.height = 70;
+
+    for(let nm in nizRotation){
+        for(let z = 0; z < Number(Object.keys(insertValues.Projekti[0]).length) + 1 ; z++){
+            let velikoSlovo = colName(z).toUpperCase()
+            worksheet.getCell(''+velikoSlovo+''+nizRotation[nm]+'').alignment = { textRotation: 90};
+        }
+    }
+
+   let brF = 0 
+   for(let i = 1; i < insertValues.Projekti.length ; i++){
+        for(let nm in insertValues.Projekti[i]){
+            let velikoSlovo = colName(brF).toUpperCase();  
+            let rez = Number(i) + 1;
+            brF++;
+            let tacka = nm.indexOf("Nedelja");
+            let ukupno = nm.indexOf("Ukupno");
+            if(ukupno == -1){}
+            else{
+                worksheet.getCell(''+velikoSlovo+''+rez+'').fill = {type: 'pattern',pattern:'solid',fgColor:{argb:'FFFF00'}};
+            }
+            if(tacka == -1){}
+            else{
+                worksheet.getCell(''+velikoSlovo+''+rez+'').fill = {type: 'pattern',pattern:'solid',fgColor:{argb:'FFFACD'}};
+            }
+            
+        }
+        brF = 0
+    } 
+
+    /*worksheet.getCell('H2').fill = {type: 'pattern',pattern:'darkVertical',fgColor:{argb:'FFEEEE00'}};
+
+    worksheet.getCell('H3').fill = {
+        type: 'pattern',
+        pattern:'darkVertical',
+        fgColor:{argb:'FFFFF00'}
+    };*/
+
+    var myWritableStreamBuffer = new streamBuffers.WritableStreamBuffer();
+    workbook.xlsx.write(myWritableStreamBuffer)
+        .then(function(){
+            resp.json(myWritableStreamBuffer.getContents());
+    });
+
+     /*
+        worksheet.columns = [
+            { header: 'Id', key: 'id', width: 10 },
+            { header: 'Name', key: 'name', width: 32 },
+            { header: 'D.O.B.', key: 'DOB', width: 10, outlineLevel: 1 }
+        ];
+
+        // Access an individual columns by key, letter and 1-based column number
+        var idCol = worksheet.getColumn('id');
+        var nameCol = worksheet.getColumn('B');
+        var dobCol = worksheet.getColumn(3);
+        dobCol.header = 'Date of Birth';
+        dobCol.header = ['Date of Birth', 'A.K.A. D.O.B.'];
+        dobCol.key = 'dob';
+        dobCol.width = 15;*/
+
+        // Hide the column if you'd like
+        
+
+        /*var row = worksheet.getRow(1);
+        row.height = 150;
+        let nizSlova = ['A','B'];
+        for(let s in nizSlova){
+            worksheet.getCell(''+nizSlova[s]+'1').alignment = { textRotation: 90 };
+        }
+     */
+
 });
 
 router.post('/PrijavaKorisnika',function(req,res,next){
@@ -426,8 +697,6 @@ router.get('/korisnici-transakciju/inf',function(req,resp){
                 connection.rollback(function() {
                 throw error;
                 });
-               
-
             }
                   connection.commit(function(error) {
                         if (error) { 
@@ -488,14 +757,12 @@ router.get('/korisnici-transakciju/inf',function(req,resp){
                                 }
                             }
                             else{                           
-                              resp.json("Nije dobra Sifra");
+                                resp.json("Nije dobra Sifra");
                             }                                                                   
                   
                         }
                         else{
-
                             resp.json("Nije dobro Ime");
-
                         }
              });
         });
@@ -563,26 +830,146 @@ router.get('/refresh/token',function(req,resp,next){
     }
 
     if(Nadimak == "" || Nadimak == null || Nadimak == NaN || Nadimak == undefined){
-
         resp.status(500).json("Neispravno je uneto ime");
         return;
-
     }
 
     var tokenSaljiM = jwt.sign({ime:Nadimak,admin:Admin }, 'shhhhh', {
-                                    //expiresInMinutes: 1440
-            expiresIn : 60*60*24//VReme isteka tokena ceoo dan!!
+        //expiresInMinutes: 1440
+        expiresIn : 60*60*24//VReme isteka tokena ceoo dan!!
         // expiresIn : 5000 
     });   
 
     console.log("Usaoooo");
-
     resp.json(tokenSaljiM);
-    
      
 });
 
-router.get('/json',function(req,resp,next){
+router.get('/json',function(req,resp){  
+
+    let query = url.parse(req.url,true).query;
+    let Nedelja = query.nedelja;
+    let Mesec = query.mesec;
+    let Ime = query.ime;
+    let Godina = query.godina;
+
+    function Prikaz(projekti){
+        let prevod = [];
+        connection.query("select * from micko_prevodi",function(error,rows,field) {
+        
+            if(error){resp.json('Error',error);}
+            var z = {};    
+            for(var zz in rows){
+                z[rows[zz].naziv] = rows[zz]['prevod'];
+            }
+            prevod.push(z);
+
+            resp.json({
+                Prevodi:prevod,
+                Podaci:projekti
+            });
+        });
+    }
+
+    function SelectProjekti(prikaz){
+        //resp.json(prikaz);
+        let selBr = 0
+        let sviProjekti = [];
+
+        for(let pr in prikaz){
+            connection.query("select P.id_pr,P.Projekti,"+prikaz[pr].zarez+",P.tabela_vrednosti from micko_projekti as P LEFT JOIN "+prikaz[pr].ime_tabele+" as S \
+                on P.id_pr = S.id_projekat_D LEFT JOIN micko_pr_nadimak as R on S.id_nadimak_D = R.id_korisnik and S.id_projekat_D = R.id_projekat \
+                where R.zakacen = 'radi' and P.aktivan_projekat = 'aktivan' and id_nadimak_D =  Micko_S('"+Ime+"') and nedelja = '"+Nedelja+"' and mesec = '"+Mesec+"' and \
+                godina = '"+Godina+"' order by P.id_pr",function(error,rows,field) {
+
+                    selBr++;
+                    if(error) {resp.json('Error',error);           }
+                    for(var ii in rows) {
+                        var empobj = rows[ii];
+                        sviProjekti.push(empobj);
+                    }
+                    if(prikaz.length == selBr){Prikaz(sviProjekti);}
+            });   
+        }
+    }
+
+    connection.query("select * from micko_tabele_ime", function(err, blogs, fields) {
+
+        let rest_ime_tabela = [];
+        let stringCrta = [];
+        let string = ''
+        let stringZarez = '';
+        let brojFor = 0,brInsr = 0;
+        for(var ii in blogs)
+        {
+            var empobj = blogs[ii];
+            rest_ime_tabela.push(empobj);
+            rest_ime_tabela[ii].json = JSON.parse(rest_ime_tabela[ii].json)
+            let z = {};
+            for(let js in rest_ime_tabela[ii].json){
+                brojFor++;    
+                let duzina = Number(Object.keys(rest_ime_tabela[ii].json).length)
+                if(brojFor == Object.keys(rest_ime_tabela[ii].json).length){
+                     string += '' + rest_ime_tabela[ii].json[js] + '';
+                     stringZarez += 'S.' + rest_ime_tabela[ii].json[js] + '';
+                }
+                else{
+                     string += '' + rest_ime_tabela[ii].json[js] + '/';
+                     stringZarez += 'S.' + rest_ime_tabela[ii].json[js] + ',';
+                }
+            }
+            z['string'] = string;
+            z['zarez'] = stringZarez;
+            z['ime_tabele'] = rest_ime_tabela[ii].ime_tabele;
+            stringCrta.push(z);
+            string = '';
+            stringZarez = '';
+            brojFor = 0;
+        }
+        //stringCrta - priprema stringa za proceduru
+        connection.query("select P.id_pr,P.Projekti,R.Nadimak_Klijent,P.tabela_vrednosti from micko_projekti as P INNER JOIN  micko_pr_nadimak as M on P.id_pr = M.id_projekat \
+            INNER JOIN micko_registracija as R on M.id_korisnik = R.id where R.id = Micko_S('"+Ime+"') and M.zakacen = 'radi' and P.aktivan_projekat = 'aktivan' order by P.tabela_vrednosti DESC,id_pr",function(error,rows,field) {
+        
+            if(error){
+                console.log("Error",error);
+            }
+            var rest = [];
+            for(var ii in rows){
+                var empobj = rows[ii];
+                for(let k in stringCrta){
+                    if(rows[ii].tabela_vrednosti == stringCrta[k]['ime_tabele']){
+                        empobj['string'] = stringCrta[k]['string'];
+                    }
+                }
+                rest.push(empobj);
+            }
+            if(rest.length == 0){
+                console.log("Micko")
+                Prikaz("");
+            }
+            else{
+                for(let rs in rest){
+                    
+                    connection.query("CAll upis_satnica_nule('"+rest[rs].Nadimak_Klijent+"',\
+                        '"+rest[rs].tabela_vrednosti+"',\
+                        '"+rest[rs].string+"',\
+                        '"+rest[rs].id_pr+"',\
+                        '"+rest[rs].Projekti+"',\
+                        '"+Godina+"',\
+                        '"+Mesec+"',\
+                        '"+Nedelja+"')",
+                        function(error,rez,field) {
+                            brInsr++;
+                            if(brInsr == rest.length){ SelectProjekti(stringCrta); }
+                    });   
+                }
+            }     
+        });     
+    }); 
+
+});
+
+router.get('/json-stari',function(req,resp,next){
 
     var query = url.parse(req.url,true).query;
     var Nedelja = query.nedelja;
@@ -596,23 +983,20 @@ router.get('/json',function(req,resp,next){
 
         connection.query("select * from micko_prevodi",function(error,rows,field) {
         
-            if(error)
-            {
+            if(error){
                 console.log('Error',error);
                 resp.json('Error',error);
             }
             var restPrevodi = [];
             
 
-            for(var ii in rows)
-            {
+            for(var ii in rows){
                 var empobj = rows[ii];
                 restPrevodi.push(empobj);
             }
             var z = {};    
             for(var zz in rows){
                 z[rows[zz].naziv] = rows[zz]['prevod'];
-            
             }
             prevod.push(z);
 
@@ -655,6 +1039,8 @@ router.get('/json',function(req,resp,next){
         let dd = 0;
         
         SelectFunction(dd);
+
+        console.log("selectM" , selectM)
 
         function SelectFunction(dd){
 
@@ -727,7 +1113,9 @@ router.get('/json',function(req,resp,next){
         //PROJEKTI
         //Projekti na kojima rade korisnici 
 
-        //resp.json(satnice);
+        //console.log("satnice" , satnice[0].sve_jedna_tabela);
+        //console.log("projektipr" , projektipr[0].sve_jedna_tabela);
+        //console.log("length: " + satnice[0]['prodaja'].length);
 
         var brQuery = 0;
         var sumaBre = 0;
@@ -766,75 +1154,76 @@ router.get('/json',function(req,resp,next){
         let k = 0;
         let funkcijeBr = 0;
 
-        
         function MarsBre(SlovoK){
 
             let k;
             k = SlovoK;
             //console.log("k" + k);
 
-            if(satnice[0][informacijePr[k]['ime_tabele']] == null){//Ovde ulazi samo ako za odredjenu tabelu nema upisanih satnica!!
+            /*
+                if(satnice[0][informacijePr[k]['ime_tabele']] == null){//Ovde ulazi samo ako za odredjenu tabelu nema upisanih satnica!!
 
-                console.log("Micko bree");
+                    console.log("Micko bree");
 
-                var oznaka = [informacijePr[k]['ime_tabele']]
-                for(let pr in projektipr[0][oznaka]){
-                    //informacijePr[k]['ime_tabele'] - ime tabele u koju treba da se upisuje
-                    //projektipr[0][oznaka][pr]['id_pr'] - id projekta koji nema satnice upisane
-                    console.log("Ime tabele" + informacijePr[k]['ime_tabele']);    
+                    var oznaka = [informacijePr[k]['ime_tabele']]
+                    for(let pr in projektipr[0][oznaka]){
+                        //informacijePr[k]['ime_tabele'] - ime tabele u koju treba da se upisuje
+                        //projektipr[0][oznaka][pr]['id_pr'] - id projekta koji nema satnice upisane
+                        console.log("Ime tabele" + informacijePr[k]['ime_tabele']);    
 
-                    connection.query("insert into "+informacijePr[k]['ime_tabele']+"(id_nadimak_D,id_projekat_D,nedelja,mesec,godina,\
-                        "+informacijePr[k].json.polje1+","+informacijePr[k].json.polje2+","+informacijePr[k].json.polje3+","+informacijePr[k].json.polje4+","+informacijePr[k].json.polje5+") value \
-                        (Micko_S('"+Ime+"'),'"+projektipr[0][oznaka][pr]['id_pr']+"','"+Nedelja+"','"+Mesec+"','"+Godina+"',0,0,0,0,0)",function(error,rows,field) {
+                        connection.query("insert into "+informacijePr[k]['ime_tabele']+"(id_nadimak_D,id_projekat_D,nedelja,mesec,godina,\
+                            "+informacijePr[k].json.polje1+","+informacijePr[k].json.polje2+","+informacijePr[k].json.polje3+","+informacijePr[k].json.polje4+","+informacijePr[k].json.polje5+") value \
+                            (Micko_S('"+Ime+"'),'"+projektipr[0][oznaka][pr]['id_pr']+"','"+Nedelja+"','"+Mesec+"','"+Godina+"',0,0,0,0,0)",function(error,rows,field) {
 
-                            brQuery++;
-                            //console.log("Usaooooo" + brQuery);
-                            if(brQuery == sumaBre){
-                                callbackMicko(informacijePr,projektipr,rest);
-                            }
-                    });
+                                brQuery++;
+                                //console.log("Usaooooo" + brQuery);
+                                if(brQuery == sumaBre){
+                                    callbackMicko(informacijePr,projektipr,rest);
+                                }
+                        });
+                    }
+                }
+            */
+            //else{
+            var oznaka1 = [informacijePr[k]['ime_tabele']]
+            //console.log("oznaka1" + satnice[0][oznaka1].length);
+            if(satnice[0][oznaka1].length == projektipr[0][oznaka1].length){
+
+                console.log("Jednaki");
+                funkcijeBr++;
+                if(informacijePr.length == funkcijeBr){
+                    callbackMicko(informacijePr,projektipr,rest);
+                }
+                else{
+                    k++;
+                    MarsBre(k);
+                }                   
+            }
+            else if(satnice[0][oznaka1].length > projektipr[0][oznaka1].length){
+
+                console.log("Razliciti");
+                funkcijeBr++;
+                if(informacijePr.length == funkcijeBr){
+                    callbackMicko(informacijePr,projektipr,rest);
+                }
+                else{
+                    k++;
+                    MarsBre(k);
                 }
             }
             else{
-                var oznaka1 = [informacijePr[k]['ime_tabele']]
-                console.log("oznaka1" + oznaka1);
-                if(satnice[0][oznaka1].length == projektipr[0][oznaka1].length){
 
-                    funkcijeBr++;
-                    if(informacijePr.length == funkcijeBr){
-                        //resp.json("Micko");
-                        callbackMicko(informacijePr,projektipr,rest);
-                    }
-                    else{
-                        k++;
-                        MarsBre(k);
-                    }                   
-                }
-                else if(satnice[0][oznaka1].length > projektipr[0][oznaka1].length){
+                console.log("Treba upisati nuleee u tabelu!!");    
+                //console.log("usao ovde!!1")
+                funkcijeBr++;
+                let pr = 0;
+                let brFunkcije = 0;
+                NekaFunkcija(k,oznaka1,pr,brFunkcije);
 
-                    funkcijeBr++;
-                    if(informacijePr.length == funkcijeBr){
-                        //resp.json("Micko");
-                        callbackMicko(informacijePr,projektipr,rest);
-                    }
-                    else{
-                        k++;
-                        MarsBre(k);
-                    }
-                }
-                else{
-                    
-                    //console.log("usao ovde!!1")
-                    funkcijeBr++;
-                    let pr = 0;
-                    let brFunkcije = 0;
-                    NekaFunkcija(k,oznaka1,pr,brFunkcije);
-
-                }
             }
+            //}
         }
         
-
         function NekaFunkcija(k,oznaka1,pr,brFunkcije){
 
             let brPrk = 0;
@@ -1266,7 +1655,7 @@ router.get('/json',function(req,resp,next){
         let niz = [];
         let nizDuzine = [];
         var brNiz = 0;
-        var razliciti = rest[0].tabela_vrednosti;
+        //var razliciti = rest[0].tabela_vrednosti;
         var brojacProjekata = 1;
         var duzinaProjekata = 0;
         var Izgled = [];
@@ -1485,10 +1874,16 @@ router.get('/json',function(req,resp,next){
                 var empobj = tags[ii];
                 rest.push(empobj);
             }
-            //resp.json(rest);
-            //console.log(rest);
+            
+            if(rest.length == 0){
+                resp.json(rest);
+                console.log("Prazno je breeee!!!");
+            }
+            else{
+                callback(blogs,rest,rest_ime_tabela);
+            }
             //console.log(blogs);
-            callback(blogs,rest,rest_ime_tabela);
+            //callback(blogs,rest,rest_ime_tabela);
         });
     });
     
@@ -1532,7 +1927,7 @@ router.get('/email',function(req,resp,next){
     transporter.sendMail(cuvaj, (error, info) => {
         if (error) {
             return console.log(error);
-            resp.json(error);
+            //resp.json(error);
         }
         console.log('Message %s sent: %s', info.messageId, info.response);
             resp.json("Poslat mejl");
@@ -1551,9 +1946,7 @@ router.get('/trenutna-godina',function(req,resp,next){
 
 router.get('/token/provera',function(req,resp,next){
       
-    // resp.send('Bravooo Micko');
-
-     
+    // resp.send('Bravooo Micko');   
 });
 
 router.get('/trenutna-nedelja',function(req,resp,nesxt){
@@ -1568,18 +1961,18 @@ router.get('/trenutna-nedelja',function(req,resp,nesxt){
 
     var Trenutna_Nedelja = "select Nedelja_Trenutna('"+trenutni_datum+"') as Vreme";
 
-             connection.query(Trenutna_Nedelja,function(error,rows){
-                    
-                if(error){
-                    resp.json('Error',error);
-                }
-                var rest = [];
-                for(var ii in rows){
-                    var empobj = rows[ii];
-                    rest.push(empobj);
-                }
+        connection.query(Trenutna_Nedelja,function(error,rows){
+            
+        if(error){
+            resp.json('Error',error);
+        }
+        var rest = [];
+        for(var ii in rows){
+            var empobj = rows[ii];
+            rest.push(empobj);
+        }
 
-                resp.json(Number(rest[0].Vreme))           
+        resp.json(Number(rest[0].Vreme))           
     });
 
 });
@@ -1603,6 +1996,130 @@ router.put('/tests-insert',function(req,resp,next){
     let brIns = 0
     let brojacIns = 0
     let brProjekta = 0;
+
+    
+    
+    //resp.json("Uspesan Insert");
+    let string = "";
+    let noviObjekat = [];
+    let brFr = 0;
+
+    for(let i in insertValues.obj){
+        
+        string += "" + insertValues.obj[i].id_pr + "*" + insertValues.obj[i].tabela_vrednosti + "/";
+        for(let j in insertValues.obj[i].Podaci){
+            let duzinaP = Object.keys(insertValues.obj[i].Podaci).length;
+            brFr++;
+            if(duzinaP == brFr){
+                string += "" + insertValues.obj[i].Podaci[j]['baza'] + "=" + insertValues.obj[i].Podaci[j]['satnica'] + ";";       
+            }
+            else{
+                string += "" + insertValues.obj[i].Podaci[j]['baza'] + "=" + insertValues.obj[i].Podaci[j]['satnica'] + ",";
+            }
+        }
+        brFr = 0;
+    }
+    //Snimi_sve_projekte(in nadimak varchar(100),in opcije LONGTEXT,in godina int,in mesec varchar(100),in nedelja int)
+    connection.query("call Snimi_sve_projekte('"+Ime+"','"+string+"',"+Godina+",'"+Mesec+"',"+Nedelja+")",function(error,rows,field) {
+        if (error) {
+            resp.json('Error',error);
+        }
+        else{
+            resp.json("Uspesan Insert");
+            console.log("Micko");
+        }
+    });
+
+
+    //27*sve_jedna_tabela/Razvoj=1,odrzavanje=2,dokumentacija=10,implementacija=9,rezijski_poslovi=5;    
+    //console.log("string" , string);
+    //console.log("insertValues" , insertValues.obj[0].Podaci);
+    //resp.json("Uspesan Insert");
+
+    /*
+    function Poredjaj(){
+        for(let ii in insertValues.obj){
+            for(let zz in insertValues.obj[ii].Podaci){
+                if(zz == Number(insertValues.obj[ii].Podaci.length) - 1){
+                    string += ""+insertValues.obj[ii].Podaci[zz].baza+" = "+insertValues.obj[ii].Podaci[zz].satnica+"";
+                }
+                else{
+                    string += ""+insertValues.obj[ii].Podaci[zz].baza+" = "+insertValues.obj[ii].Podaci[zz].satnica+",";
+                }
+            }
+            let g = {};
+            g['Projekti'] = insertValues.obj[ii].Projekti;
+            g['id_pr'] = insertValues.obj[ii].id_pr;
+            g['pretraga'] = insertValues.obj[ii].pretraga;
+            g['sumProjekata'] = insertValues.obj[ii].sumProjekata;
+            g['tabela_vrednosti'] = insertValues.obj[ii].tabela_vrednosti;
+            g['stringSpojeno'] = string;
+            noviObjekat.push(g);
+            string = "";
+            //console.log("Spojeno " , noviObjekat[ii].tabela_vrednosti);
+            //console.log("Spojeno " , noviObjekat[ii].id_pr);
+            //console.log("Spojeno " , noviObjekat[ii].stringSpojeno);
+        }
+        //UpdateTable();
+    }*/
+
+    /*
+    let brUp = 0,brUp1 = 0
+    function UpdateTable(){
+
+        connection.query("update "+noviObjekat[brUp].tabela_vrednosti+" set "+noviObjekat[brUp].stringSpojeno+" \
+            where id_nadimak_D = Micko_S('"+Ime+"') and id_projekat_D = "+noviObjekat[brUp].id_pr+" and nedelja = '"+Nedelja+"' and mesec = '"+Mesec+"' and godina = '"+Godina+"'",function(error,rows,field) {
+
+            //brUp++;
+            brUp++;
+            if (error) {
+                resp.json('Error',error);
+            }
+            else{
+                if(brUp == Object.keys(noviObjekat).length){
+                    resp.json("Uspesan Insert");
+                    console.log("Micko");
+                    return
+                }
+                else{
+                    UpdateTable();
+                }
+            }
+        });
+    }*/
+
+    //Poredjaj();
+   
+    function UpisiSveSatnice(){
+
+        for(let br in insertValues.obj[brProjekta].Podaci){
+            connection.query("update "+insertValues.obj[brProjekta].tabela_vrednosti+" set "+insertValues.obj[brProjekta].Podaci[br].baza+" = '"+insertValues.obj[brProjekta].Podaci[br].satnica+"' \
+                where id_nadimak_D = Micko_S('"+Ime+"') and id_projekat_D = "+insertValues.obj[brProjekta].id_pr+" and nedelja = '"+Nedelja+"' and mesec = '"+Mesec+"' and godina = '"+Godina+"'",function(error,rows,field) {
+                    
+                brojacIns++; 
+                if (error) {
+                    resp.json('Error',error);
+                }
+                else {
+                    //resp.json('Uspesan Insert');
+                    if(brojacIns == insertValues.obj[brProjekta].Podaci.length){
+
+                        brojacIns = 0;    
+                        brProjekta++;
+
+                        if(brProjekta == insertValues.obj.length){
+                            //console.log(brProjekta);
+                            resp.status(200).json('Uspesan Insert');
+                        }
+                        else{
+                            UpisiSveSatnice();    
+                        }
+                    }
+                }
+            });
+        }
+    }
+
     function PozoviSamaSebe(){
         
         for(let y = 0; y <= 3; y++ ){
@@ -1623,37 +2140,7 @@ router.put('/tests-insert',function(req,resp,next){
         }
     }
 
-    function UpisiSveSatnice(){
-
-        for(let br in insertValues.obj[brProjekta].Podaci){
-            connection.query("update "+insertValues.obj[brProjekta].tabela_vrednosti+" set "+insertValues.obj[brProjekta].Podaci[br].baza+" = '"+insertValues.obj[brProjekta].Podaci[br].satnica+"' \
-                where id_nadimak_D = Micko_S('"+Ime+"') and id_projekat_D = "+insertValues.obj[brProjekta].id_pr+" and nedelja = '"+Nedelja+"' and mesec = '"+Mesec+"' and godina = '"+Godina+"'",function(error,rows,field) {
-                    
-                brojacIns++; 
-                if (error) {
-                    resp.json('Error',error);
-                }
-                else {
-                    //resp.json('Uspesan Insert');
-                    if(brojacIns == insertValues.obj[brProjekta].Podaci.length){
-
-                        brojacIns = 0;    
-                        brProjekta++;
-
-                        if(brProjekta == insertValues.obj.length){
-                            console.log(brProjekta);
-                            resp.status(200).json('Uspesan Insert');
-                        }
-                        else{
-                            UpisiSveSatnice();    
-                        }
-                    }
-                }
-            });
-        }
-    }
-
-    UpisiSveSatnice();  
+    //UpisiSveSatnice();  
 
 });
 
@@ -1672,7 +2159,6 @@ router.put('/projekti',function(req,resp,next){
         "imeTabele" :  reqObj.tabela,
     };
 
-
     var probaj;
     var probaGodina;
     var probaNedelja;
@@ -1682,38 +2168,34 @@ router.put('/projekti',function(req,resp,next){
     var probaImplementacija;
     var probaReziski_poslovi;
     var brojac = 0;
-
-  
     var odabraniMesec = Mesec;
     var godinaUpit = Godina;
     var mesecUpit;
     let brojacInsert = 0;
-    console.log("brojacInsert" + brojacInsert);
+    //console.log("brojacInsert" + brojacInsert);
+    //console.log("insertValues" , insertValues.obj)
+    let stringJ = ""
+    for(let zz in insertValues.obj){
+        if(zz == Number(insertValues.obj.length) - 1){
+            stringJ += ""+insertValues.obj[zz].baza+" = "+insertValues.obj[zz].satnica+"";
+        }
+        else{
+            stringJ += ""+insertValues.obj[zz].baza+" = "+insertValues.obj[zz].satnica+",";
+        }
+    }  
 
-    /*console.log(insertValues.obj);
-    console.log(insertValues.oimeTabelebj);
-    resp.status(200).json('Uspesan Insert');*/
-
-    
-    for(let br in insertValues.obj){
-
-        connection.query("update "+insertValues.imeTabele+" set "+insertValues.obj[br].baza+" = "+insertValues.obj[br].satnica+" \
-            where id_nadimak_D = Micko_S('"+Ime+"') and id_projekat_D = '"+Projekat+"' and nedelja = '"+Nedelja+"' and mesec = '"+Mesec+"' and godina = '"+Godina+"'",function(error,rows,field) {
-            //connection.query("UPDATE "+insertValues.imeTabele+" SET odrzavanje=4 WHERE id='2219'",function(error,rows,field) {    
-
-            brojacInsert++;
-            
-            if (error) {
-                resp.json('Error',error);
-            }
-            else {
-                if(brojacInsert == insertValues.obj.length){
-                    console.log("Usaoo");
-                    resp.status(200).json('Uspesan Insert');
-                }
-            }
-        });
-    }
+    connection.query("update "+insertValues.imeTabele+" set "+stringJ+" \
+        where id_nadimak_D = Micko_S('"+Ime+"') and id_projekat_D = '"+Projekat+"' and nedelja = '"+Nedelja+"' and mesec = '"+Mesec+"' and godina = '"+Godina+"'",function(error,rows,field) { 
+        brojacInsert++;
+        
+        if (error) {
+            resp.json('Error',error);
+        }
+        else {
+            console.log("Usaoo");
+            resp.status(200).json('Uspesan Insert');
+        }
+    });
 
 
     /*
@@ -2376,6 +2858,8 @@ function Email(textT,email){
     };  
 }
 
+
+
 var connection = mysql.createConnection({
    
         host     : 'localhost',
@@ -2385,7 +2869,8 @@ var connection = mysql.createConnection({
         micko : console.log('ConekcijaBaza')
 });
 
-/*var connection = mysql.createConnection({
+/*
+var connection = mysql.createConnection({
    
         host     : '192.168.1.11',
         user     : 'timerep',
@@ -2393,6 +2878,5 @@ var connection = mysql.createConnection({
         database : 'timerep',
         micko : console.log('ConekcijaBaza')
 });*/
-
 
 module.exports = router;

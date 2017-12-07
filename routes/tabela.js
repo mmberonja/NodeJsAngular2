@@ -45,11 +45,7 @@ routerTabela.get('/korisnici',function(req,resp,next){
     var Nedelja = query.nedelja;
     var Nadimak = query.nadimak;
     var Godina = query.godina;
-
-    var Godina = query.godina;
-
-    console.log("Nedelja" + Nedelja);
-    console.log("Nedelja" + Mesec);
+    //var Godina = query.godina;
 
     varNizMesec = ['Januar','Februar','Mart','April','Maj','Jun','Jul','Avgust','Septembar','Oktobar','Novembar','Decembar']
     var odabraniMesec,mesecUpit;
@@ -242,6 +238,7 @@ routerTabela.get('/korisnici',function(req,resp,next){
 
 module.exports = routerTabela;
 
+
 var connection = mysql.createConnection({
    
         host     : 'localhost',
@@ -250,3 +247,13 @@ var connection = mysql.createConnection({
         database : 'test_schema',
         //micko : console.log('ConekcijaBaza')
 });
+
+/*
+var connection = mysql.createConnection({
+   
+        host     : '192.168.1.11',
+        user     : 'timerep',
+        password : '123timerep456',
+        database : 'timerep',
+        micko : console.log('ConekcijaBazaTabela')
+});*/
